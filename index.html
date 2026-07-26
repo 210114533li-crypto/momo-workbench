@@ -529,6 +529,7 @@ function fmtISO(d){var y=d.getFullYear(),m=String(d.getMonth()+1).padStart(2,'0'
 function fmtDisplay(ds){var d=new Date(ds+'T00:00:00'),wd=['日','一','二','三','四','五','六'];return(d.getMonth()+1)+'月'+d.getDate()+'日 星期'+wd[d.getDay()]}
 function getNowTime(){var d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
 function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function showToast(msg){var t=document.getElementById('toast');if(!t){t=document.createElement('div');t.id='toast';t.style.cssText='position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg-sidebar);color:#fff;padding:10px 24px;border-radius:20px;font-size:14px;font-weight:600;z-index:9999;pointer-events:none;opacity:0;transition:opacity .3s';document.body.appendChild(t)};t.textContent=msg;t.style.opacity='1';clearTimeout(t._timer);t._timer=setTimeout(function(){t.style.opacity='0'},2000)}
 
 /* ====== DATA MGMT ====== */
 function loadData(){try{var r=localStorage.getItem(STORAGE_KEY);if(r){var d=JSON.parse(r);allData=d.data||d;currentDate=fmtISO(new Date())}}catch(e){allData={}}}
@@ -784,12 +785,19 @@ function renderFoodLog(){
   updateDietAdvice();
 }
 function addFoodLog(){
-  var meal=document.getElementById('foodMeal').value,content=document.getElementById('foodContent').value.trim(),cal=document.getElementById('foodCal').value;
-  if(!content){alert('请输入饮食内容');return}
-  var dd=getDayData(currentDate);dd.foodLog.push({id:Date.now().toString(),meal:meal,content:content,cal:parseFloat(cal)||0});
-  saveData();document.getElementById('foodContent').value='';document.getElementById('foodCal').value='';renderFoodLog();
+  try{
+    var mealEl=document.getElementById('foodMeal'),contentEl=document.getElementById('foodContent'),calEl=document.getElementById('foodCal');
+    if(!mealEl||!contentEl||!calEl){showToast('表单元素未找到，请刷新页面');return}
+    var meal=mealEl.value,content=contentEl.value.trim(),cal=calEl.value;
+    if(!content){showToast('请输入饮食内容');return}
+    var dd=getDayData(currentDate);
+    if(!dd){showToast('数据初始化失败，请刷新页面');return}
+    if(!dd.foodLog)dd.foodLog=[];
+    dd.foodLog.push({id:Date.now().toString(),meal:meal,content:content,cal:parseFloat(cal)||0});
+    saveData();contentEl.value='';calEl.value='';renderFoodLog();showToast('已添加 ✓');
+  }catch(e){console.error(e);showToast('添加失败，请重试')}
 }
-function deleteFoodLog(id){var dd=getDayData(currentDate);dd.foodLog=dd.foodLog.filter(function(f){return f.id!==id});saveData();renderFoodLog()}
+function deleteFoodLog(id){try{var dd=getDayData(currentDate);if(!dd||!dd.foodLog)return;dd.foodLog=dd.foodLog.filter(function(f){return f.id!==id});saveData();renderFoodLog()}catch(e){console.error(e)}}
 function updateDietAdvice(){
   var dd=getDayData(currentDate),adv=document.getElementById('dietAdvice');if(!adv)return;
   if(!dd.foodLog.length){adv.innerHTML='📝 记录今日饮食后，我会给出优化建议 🥗';return}
@@ -815,12 +823,19 @@ function renderWorkoutLog(){
   updateWorkoutAdvice();
 }
 function addWorkoutLog(){
-  var type=document.getElementById('workoutType').value,duration=document.getElementById('workoutDuration').value,detail=document.getElementById('workoutDetail').value.trim();
-  if(!duration||parseFloat(duration)<=0){alert('请输入有效时长');return}
-  var dd=getDayData(currentDate);dd.workoutLog.push({id:Date.now().toString(),type:type,duration:parseFloat(duration),detail:detail});
-  saveData();document.getElementById('workoutDuration').value='';document.getElementById('workoutDetail').value='';renderWorkoutLog();
+  try{
+    var typeEl=document.getElementById('workoutType'),durEl=document.getElementById('workoutDuration'),detEl=document.getElementById('workoutDetail');
+    if(!typeEl||!durEl||!detEl){showToast('表单元素未找到，请刷新页面');return}
+    var type=typeEl.value,duration=durEl.value,detail=detEl.value.trim();
+    if(!duration||parseFloat(duration)<=0){showToast('请输入有效时长（分钟）');return}
+    var dd=getDayData(currentDate);
+    if(!dd){showToast('数据初始化失败，请刷新页面');return}
+    if(!dd.workoutLog)dd.workoutLog=[];
+    dd.workoutLog.push({id:Date.now().toString(),type:type,duration:parseFloat(duration),detail:detail});
+    saveData();durEl.value='';detEl.value='';renderWorkoutLog();showToast('已添加 ✓');
+  }catch(e){console.error(e);showToast('添加失败，请重试')}
 }
-function deleteWorkoutLog(id){var dd=getDayData(currentDate);dd.workoutLog=dd.workoutLog.filter(function(w){return w.id!==id});saveData();renderWorkoutLog()}
+function deleteWorkoutLog(id){try{var dd=getDayData(currentDate);if(!dd||!dd.workoutLog)return;dd.workoutLog=dd.workoutLog.filter(function(w){return w.id!==id});saveData();renderWorkoutLog()}catch(e){console.error(e)}}
 function updateWorkoutAdvice(){
   var dd=getDayData(currentDate),adv=document.getElementById('workoutAdvice');if(!adv)return;
   if(!dd.workoutLog.length){adv.innerHTML='📝 记录今日运动后，我会给出评估和建议 💪';return}
